@@ -732,8 +732,11 @@ class LSDbTransfer(DbTransfer):
 			for id in node_online_ip.keys():
 				for ip in node_online_ip[id]:
 					cur = conn.cursor()
-					cur.execute("INSERT INTO `alive_ip` (`id`, `nodeid`,`userid`, `ip`, `datetime`) VALUES (NULL, '" + str(
-						get_config().NODE_ID) + "','" + str(self.port_uid_table[id]) + "', '" + str(ip) + "', unix_timestamp())")
+					try:
+						cur.execute("INSERT INTO `alive_ip` (`id`, `nodeid`,`userid`, `ip`, `datetime`) VALUES (NULL, '" + str(
+							get_config().NODE_ID) + "','" + str(self.port_uid_table[id]) + "', '" + str(ip) + "', unix_timestamp())")
+					except Exception as e:
+						logging.error(e)
 					cur.close()
 		except:
 			logging.warn('no `ss_node_online_log or alive_ip` or `" + self.ss_node_info_name + "` in db')
