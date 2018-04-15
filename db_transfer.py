@@ -727,10 +727,15 @@ class LSDbTransfer(DbTransfer):
 				logging.error(e)
 			cur.close()
 
+		except:
+			logging.warn('no `ss_node_online_log` or `" + self.ss_node_info_name + "` in db')
+
+		try:
 			#在线IP检测
 			node_online_ip = ServerPool.get_instance().get_servers_ip_list()
 			for id in node_online_ip.keys():
 				for ip in node_online_ip[id]:
+					logging.info('" + str(self.cfg["node_id"]) + " IP: " + str(ip) + " USER: " + str(self.port_uid_table[id]) + "')
 					cur = conn.cursor()
 					try:
 						cur.execute("INSERT INTO `alive_ip` (`id`, `nodeid`,`userid`, `ip`, `datetime`) VALUES (NULL, '" + \
@@ -738,8 +743,8 @@ class LSDbTransfer(DbTransfer):
 					except Exception as e:
 						logging.error(e)
 					cur.close()
-		except:
-			logging.warn('no `ss_node_online_log or alive_ip` or `" + self.ss_node_info_name + "` in db')
+		except Exception as e:
+			logging.warn('no `alive_ip` in db')
 
 		conn.close()
 		return update_transfer
