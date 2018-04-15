@@ -1249,6 +1249,8 @@ class TCPRelay(object):
         self._server_socket_fd = server_socket.fileno()
         self._stat_counter = stat_counter
         self._stat_callback = stat_callback
+        # 增加ip地址
+        self.ip_list = []
 
     def add_to_loop(self, loop):
         if self._eventloop:
