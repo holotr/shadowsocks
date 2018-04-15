@@ -629,3 +629,179 @@ class MuJsonTransfer(TransferBase):
 			logging.warn('no user in json file')
 		return rows
 
+class LSDbTransfer(DbTransfer):
+	def __init__(self):
+		super(LSDbTransfer, self).__init__()
+		self.ss_node_info_name = 'ss_node_info_log'
+		self.key_list += ['id','method','obfs', 'protocol']
+		self.start_time = time.time()
+
+	def update_all_user(self, dt_transfer):
+		import cymysql
+		# 流量记录增加日期字段
+		from datetime import datetime
+		update_transfer = {}
+
+		query_head = 'UPDATE user'
+		query_sub_when = ''
+		query_sub_when2 = ''
+		query_sub_in = None
+		last_time = time.time()
+
+		alive_user_count = len(self.onlineuser_cache)
+		bandwidth_thistime = 0
+
+		if self.cfg["ssl_enable"] == 1:
+			conn = cymysql.connect(host=self.cfg["host"], port=self.cfg["port"],
+					user=self.cfg["user"], passwd=self.cfg["password"],
+					db=self.cfg["db"], charset='utf8',
+					ssl={'ca':self.cfg["ssl_ca"],'cert':self.cfg["ssl_cert"],'key':self.cfg["ssl_key"]})
+		else:
+			conn = cymysql.connect(host=self.cfg["host"], port=self.cfg["port"],
+					user=self.cfg["user"], passwd=self.cfg["password"],
+					db=self.cfg["db"], charset='utf8')
+		conn.autocommit(True)
+
+		# 流量记录统计部分
+		for id in dt_transfer.keys():
+			transfer = dt_transfer[id]
+			bandwidth_thistime = bandwidth_thistime + transfer[0] + transfer[1]
+
+			update_trs = 1024 * (2048 - self.user_pass.get(id, 0) * 64)
+			if transfer[0] + transfer[1] < update_trs:
+				self.user_pass[id] = self.user_pass.get(id, 0) + 1
+				continue
+			if id in self.user_pass:
+				del self.user_pass[id]
+
+			query_sub_when += ' WHEN %s THEN u+%s' % (id, int(transfer[0] * self.cfg["transfer_mul"]))
+			query_sub_when2 += ' WHEN %s THEN d+%s' % (id, int(transfer[1] * self.cfg["transfer_mul"]))
+			update_transfer[id] = transfer
+
+			# 增加线路状态上报
+			if id in self.port_uid_table:
+				cur = conn.cursor()
+				try:
+					if id in self.port_uid_table:
+						sql = "INSERT INTO `user_traffic_log` (`id`, `user_id`, `u`, `d`, `node_id`, `rate`, `traffic`, `log_time`,`log_date`) VALUES (NULL,{},{},{},{},'{}','{}',unix_timestamp(),'{}');".format(str(self.port_uid_table[id]), str(transfer[0]), str(transfer[1]), str(self.cfg["node_id"]), str(self.cfg["transfer_mul"]),
+																																														self.traffic_format((transfer[0] + transfer[1]) * self.cfg["transfer_mul"]), str(datetime.now()))
+						cur.execute(sql)
+				except:
+					logging.warn('no `user_traffic_log` in db')
+				cur.close()
+
+			if query_sub_in is not None:
+				query_sub_in += ',%s' % id
+			else:
+				query_sub_in = '%s' % id
+
+		if query_sub_when != '':
+			query_sql = query_head + ' SET u = CASE port' + query_sub_when + \
+						' END, d = CASE port' + query_sub_when2 + \
+						' END, t = ' + str(int(last_time)) + \
+						' WHERE port IN (%s)' % query_sub_in
+			cur = conn.cursor()
+			try:
+				cur.execute(query_sql)
+			except Exception as e:
+				logging.error(e)
+			cur.close()
+
+		try:
+			# 节点在线人数
+			cur = conn.cursor()
+			try:
+				cur.execute("INSERT INTO `ss_node_online_log` (`id`, `node_id`, `online_user`, `log_time`) VALUES (NULL, '" + \
+					str(self.cfg["node_id"]) + "', '" + str(alive_user_count) + "', unix_timestamp()); ")
+			except Exception as e:
+				logging.error(e)
+			cur.close()
+
+			# 节点负载
+			cur = conn.cursor()
+			try:
+				cur.execute("INSERT INTO `" + self.ss_node_info_name + "` (`id`, `node_id`, `uptime`, `load`, `log_time`) VALUES (NULL, '" + \
+					str(self.cfg["node_id"]) + "', '" + str(self.uptime()) + "', '" + \
+					str(self.load()) + "', unix_timestamp()); ")
+			except Exception as e:
+				logging.error(e)
+			cur.close()
+
+			#在线IP检测
+			node_online_ip = ServerPool.get_instance().get_servers_ip_list()
+        	for id in node_online_ip.keys():
+            	for ip in node_online_ip[id]:
+                	cur = conn.cursor()
+                	cur.execute("INSERT INTO `alive_ip` (`id`, `nodeid`,`userid`, `ip`, `datetime`) VALUES (NULL, '" + str(
+                    	get_config().NODE_ID) + "','" + str(self.port_uid_table[id]) + "', '" + str(ip) + "', unix_timestamp())")
+                	cur.close()
+		except:
+			logging.warn('no `ss_node_online_log or alive_ip` or `" + self.ss_node_info_name + "` in db')
+
+		conn.close()
+		return update_transfer
+
+	def pull_db_users(self, conn):
+		#拉取所有符合要求的用户
+		try:
+			switchrule = importloader.load('switchrule')
+			keys = switchrule.getKeys(self.key_list)
+		except Exception as e:
+			keys = self.key_list
+
+		# 节点信息的获取
+		cur = conn.cursor()
+		node_info_keys = ['traffic_rate']
+		try:
+			cur.execute("SELECT " + ','.join(node_info_keys) +" FROM ss_node where `id`='" + str(self.cfg["node_id"]) + "'")
+			nodeinfo = cur.fetchone()
+		except Exception as e:
+			logging.error(e)
+			nodeinfo = None
+
+		if nodeinfo == None:
+			rows = []
+			cur.close()
+			conn.commit()
+			logging.warn('None result when select node info from ss_node in db, maybe you set the incorrect node id')
+			return rows
+		cur.close()
+
+		# 流量比例设置
+		node_info_dict = {}
+		for column in range(len(nodeinfo)):
+			node_info_dict[node_info_keys[column]] = nodeinfo[column]
+		self.cfg['transfer_mul'] = float(node_info_dict['traffic_rate'])
+
+		cur = conn.cursor()
+		try:
+			rows = []
+			if isinstance(self.cfg["node_class"],int):
+				cur.execute("SELECT " + ','.join(keys) + " FROM user WHERE user_class >= " + str(self.cfg["node_class"]))
+			else:
+				cur.execute("SELECT " + ','.join(keys) + " FROM user WHERE user_class = '" + self.cfg["node_class"] +"'")
+			for r in cur.fetchall():
+				d = {}
+				for column in range(len(keys)):
+					d[keys[column]] = r[column]
+				rows.append(d)
+		except Exception as e:
+			logging.error(e)
+		cur.close()
+		return rows
+
+	def load(self):
+		import os
+		return os.popen("cat /proc/loadavg | awk '{ print $1\" \"$2\" \"$3 }'").readlines()[0]
+
+	def uptime(self):
+		return time.time() - self.start_time
+
+	def traffic_format(self, traffic):
+		if traffic < 1024 * 8:
+			return str(int(traffic)) + "B";
+
+		if traffic < 1024 * 1024 * 2:
+			return str(round((traffic / 1024.0), 2)) + "KB";
+
+		return str(round((traffic / 1048576.0), 2)) + "MB";

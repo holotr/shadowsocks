@@ -291,3 +291,15 @@ class ServerPool(object):
 			self.update_mu_transfer(ret, u, d)
 		return ret
 
+    def get_servers_ip_list(self):
+        servers = self.tcp_servers_pool.copy()
+        servers.update(self.tcp_ipv6_servers_pool)
+        ret = {}
+        for port in servers:
+            server = servers[port]
+            ip_list = server.get_ip_address()
+            _ = []
+            ret[port] = _
+            for ip in ip_list:
+                ret[port].append(ip)
+        return ret

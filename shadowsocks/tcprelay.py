@@ -1482,6 +1482,14 @@ class TCPRelay(object):
                 handler.destroy()
         self._sweep_timeout()
 
+    def get_ip_address(self):
+        ret = []
+        for ip in self.ip_list[:]:
+            ret.append(ip.replace('::ffff:', ''))
+        del self.ip_list
+        self.ip_list = []
+        return list(set(ret))
+
     def close(self, next_tick=False):
         logging.debug('TCP close')
         self._closed = True
