@@ -633,7 +633,7 @@ class LSDbTransfer(DbTransfer):
 	def __init__(self):
 		super(LSDbTransfer, self).__init__()
 		self.ss_node_info_name = 'ss_node_info_log'
-		self.key_list += ['id','method','obfs', 'protocol']
+		self.key_list += ['pid','method','obfs', 'protocol']
 		self.start_time = time.time()
 
 	def update_all_user(self, dt_transfer):
