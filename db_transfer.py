@@ -740,7 +740,7 @@ class LSDbTransfer(DbTransfer):
 			for id in node_online_ip.keys():
 				for ip in node_online_ip[id]:
 					#logging.info('NODE ID: [%s] IP: [%s] USER: [%s]' % (str(self.cfg["node_id"]), str(ip), str(self.port_uid_table[id])))
-					logging.info('IP: [%s] USER: [%s]' % (str(ip), str(self.port_uid_table[id])))
+					logging.info('IP: [%s] USER: [%s]' % (ip, self.port_uid_table[id]))
 					cur = conn.cursor()
 					try:
 						cur.execute("INSERT INTO `alive_ip` (`id`, `nodeid`,`userid`, `ip`, `datetime`) VALUES (NULL, '" + \
