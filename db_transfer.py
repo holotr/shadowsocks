@@ -309,7 +309,7 @@ class DbTransfer(TransferBase):
 	def update_all_user(self, dt_transfer):
 		import cymysql
 		update_transfer = {}
-		
+
 		query_head = 'UPDATE user'
 		query_sub_when = ''
 		query_sub_when2 = ''
@@ -729,12 +729,12 @@ class LSDbTransfer(DbTransfer):
 
 			#在线IP检测
 			node_online_ip = ServerPool.get_instance().get_servers_ip_list()
-        	for id in node_online_ip.keys():
-            	for ip in node_online_ip[id]:
-                	cur = conn.cursor()
-                	cur.execute("INSERT INTO `alive_ip` (`id`, `nodeid`,`userid`, `ip`, `datetime`) VALUES (NULL, '" + str(
-                    	get_config().NODE_ID) + "','" + str(self.port_uid_table[id]) + "', '" + str(ip) + "', unix_timestamp())")
-                	cur.close()
+			for id in node_online_ip.keys():
+				for ip in node_online_ip[id]:
+					cur = conn.cursor()
+					cur.execute("INSERT INTO `alive_ip` (`id`, `nodeid`,`userid`, `ip`, `datetime`) VALUES (NULL, '" + str(
+						get_config().NODE_ID) + "','" + str(self.port_uid_table[id]) + "', '" + str(ip) + "', unix_timestamp())")
+					cur.close()
 		except:
 			logging.warn('no `ss_node_online_log or alive_ip` or `" + self.ss_node_info_name + "` in db')
 
