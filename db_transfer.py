@@ -750,28 +750,28 @@ class LSDbTransfer(DbTransfer):
 			keys = self.key_list
 
 		# 节点信息的获取
-		cur = conn.cursor()
-		node_info_keys = ['traffic_rate']
-		try:
-			cur.execute("SELECT " + ','.join(node_info_keys) +" FROM ss_node where `id`='" + str(self.cfg["node_id"]) + "'")
-			nodeinfo = cur.fetchone()
-		except Exception as e:
-			logging.error(e)
-			nodeinfo = None
+	#	cur = conn.cursor()
+	#	node_info_keys = ['traffic_rate']
+	#	try:
+	#		cur.execute("SELECT " + ','.join(node_info_keys) +" FROM ss_node where `id`='" + str(self.cfg["node_id"]) + "'")
+	#		nodeinfo = cur.fetchone()
+	#	except Exception as e:
+	#		logging.error(e)
+	#		nodeinfo = None
 
-		if nodeinfo == None:
-			rows = []
-			cur.close()
-			conn.commit()
-			logging.warn('None result when select node info from ss_node in db, maybe you set the incorrect node id')
-			return rows
-		cur.close()
+	#	if nodeinfo == None:
+	#		rows = []
+	#		cur.close()
+	#		conn.commit()
+	#		logging.warn('None result when select node info from ss_node in db, maybe you set the incorrect node id')
+	#		return rows
+	#	cur.close()
 
 		# 流量比例设置
-		node_info_dict = {}
-		for column in range(len(nodeinfo)):
-			node_info_dict[node_info_keys[column]] = nodeinfo[column]
-		self.cfg['transfer_mul'] = float(node_info_dict['traffic_rate'])
+	#	node_info_dict = {}
+	#	for column in range(len(nodeinfo)):
+	#		node_info_dict[node_info_keys[column]] = nodeinfo[column]
+	#	self.cfg['transfer_mul'] = float(node_info_dict['traffic_rate'])
 
 		cur = conn.cursor()
 		try:
