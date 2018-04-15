@@ -733,8 +733,8 @@ class LSDbTransfer(DbTransfer):
 				for ip in node_online_ip[id]:
 					cur = conn.cursor()
 					try:
-						cur.execute("INSERT INTO `alive_ip` (`id`, `nodeid`,`userid`, `ip`, `datetime`) VALUES (NULL, '" + str(
-							get_config().NODE_ID) + "','" + str(self.port_uid_table[id]) + "', '" + str(ip) + "', unix_timestamp())")
+						cur.execute("INSERT INTO `alive_ip` (`id`, `nodeid`,`userid`, `ip`, `datetime`) VALUES (NULL, '" + \
+							str(self.cfg["node_id"]) + "','" + str(self.port_uid_table[id]) + "', '" + str(ip) + "', unix_timestamp())")
 					except Exception as e:
 						logging.error(e)
 					cur.close()
