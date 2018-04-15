@@ -101,7 +101,7 @@ class TransferBase(object):
 				passwd = passwd.encode('utf-8')
 			cfg = {'password': passwd}
 			if 'id' in row:
-				self.port_uid_table[row['port']] = row['id']
+				self.port_uid_table[row['port']] = row['id'] if get_config().API_INTERFACE == 'LSmod' else row['pid']
 
 			read_config_keys = ['method', 'obfs', 'obfs_param', 'protocol', 'protocol_param', 'forbidden_ip', 'forbidden_port', 'speed_limit_per_con', 'speed_limit_per_user']
 			for name in read_config_keys:
@@ -683,7 +683,7 @@ class LSDbTransfer(DbTransfer):
 				cur = conn.cursor()
 				try:
 					if id in self.port_uid_table:
-						sql = "INSERT INTO `user_traffic_log` (`id`, `user_id`, `u`, `d`, `node_id`, `rate`, `traffic`, `log_time`,`log_date`) VALUES (NULL,{},{},{},{},'{}','{}',unix_timestamp(),'{}');".format(str(self.port_uid_table[id]), str(transfer[0]), str(transfer[1]), str(self.cfg["node_id"]), str(self.cfg["transfer_mul"]),
+						sql = "INSERT INTO `user_traffic_log` (`id`, `user_id`, `u`, `d`, `node_id`, `rate`, `traffic`, `log_time`,`log_date`) VALUES (NULL,{},{},{},{},'{}','{}',unix_timestamp(),'{}');".format(str(self.port_uid_table[pid]), str(transfer[0]), str(transfer[1]), str(self.cfg["node_id"]), str(self.cfg["transfer_mul"]),
 																																														self.traffic_format((transfer[0] + transfer[1]) * self.cfg["transfer_mul"]), str(datetime.now()))
 						cur.execute(sql)
 				except:
@@ -735,11 +735,11 @@ class LSDbTransfer(DbTransfer):
 			node_online_ip = ServerPool.get_instance().get_servers_ip_list()
 			for id in node_online_ip.keys():
 				for ip in node_online_ip[id]:
-					logging.info('" + str(self.cfg["node_id"]) + " IP: " + str(ip) + " USER: " + str(self.port_uid_table[id]) + "')
+					logging.info('" + str(self.cfg["node_id"]) + " IP: " + str(ip) + " USER: " + str(self.port_uid_table[pid]) + "')
 					cur = conn.cursor()
 					try:
 						cur.execute("INSERT INTO `alive_ip` (`id`, `nodeid`,`userid`, `ip`, `datetime`) VALUES (NULL, '" + \
-							str(self.cfg["node_id"]) + "','" + str(self.port_uid_table[id]) + "', '" + str(ip) + "', unix_timestamp())")
+							str(self.cfg["node_id"]) + "','" + str(self.port_uid_table[pid]) + "', '" + str(ip) + "', unix_timestamp())")
 					except Exception as e:
 						logging.error(e)
 					cur.close()
