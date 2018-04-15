@@ -642,6 +642,8 @@ class TCPRelayHandler(object):
             else:
                 common.connect_log('TCP request %s:%d by user %d' %
                         (common.to_str(remote_addr), remote_port, self._user_id))
+            # 加入ip地址检测
+            self._server.ip_list.append(self._client_address[0])
             self._remote_address = (common.to_str(remote_addr), remote_port)
             self._remote_udp = (connecttype != 0)
             # pause reading
