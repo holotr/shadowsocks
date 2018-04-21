@@ -294,6 +294,8 @@ class ServerPool(object):
 	def get_servers_ip_list(self):
 		servers = self.tcp_servers_pool.copy()
 		servers.update(self.tcp_ipv6_servers_pool)
+		servers.update(self.udp_servers_pool)
+		servers.update(self.udp_ipv6_servers_pool)
 		ret = {}
 		for port in servers:
 			server = servers[port]
